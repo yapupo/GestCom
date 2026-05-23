@@ -34,11 +34,19 @@ export interface FinanceEntry {
   amount: number;
 }
 
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  updatedAt: string;
+}
+
 interface AppState {
   ingredients: Ingredient[];
   batches: Batch[];
   finance: FinanceEntry[];
   notes: string;
+  noteList: Note[];
 }
 
 const KEY = "empadas-app-v1";
@@ -48,6 +56,7 @@ const defaultState: AppState = {
   batches: [],
   finance: [],
   notes: "",
+  noteList: [],
 };
 
 function load(): AppState {
@@ -140,6 +149,27 @@ export const actions = {
   },
   setNotes(text: string) {
     state.notes = text;
+    save();
+  },
+  addNote(title: string) {
+    const note: Note = {
+      id: crypto.randomUUID(),
+      title: title || "Sem título",
+      content: "",
+      updatedAt: new Date().toISOString(),
+    };
+    state.noteList = [note, ...state.noteList];
+    save();
+    return note.id;
+  },
+  updateNote(id: string, patch: Partial<Pick<Note, "title" | "content">>) {
+    state.noteList = state.noteList.map((n) =>
+      n.id === id ? { ...n, ...patch, updatedAt: new Date().toISOString() } : n
+    );
+    save();
+  },
+  removeNote(id: string) {
+    state.noteList = state.noteList.filter((n) => n.id !== id);
     save();
   },
   addFinance(entry: Omit<FinanceEntry, "id" | "date"> & { date?: string }) {
