@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Wallet, Package, Flame, NotebookPen, Cookie } from "lucide-react";
+import { Wallet, Package, Flame, NotebookPen, Cookie, CalendarDays } from "lucide-react";
 import { Dashboard } from "@/components/Dashboard";
 import { Estoque } from "@/components/Estoque";
 import { Fornadas } from "@/components/Fornadas";
 import { Notas } from "@/components/Notas";
+import { Calendario } from "@/components/Calendario";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -16,12 +17,13 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Tab = "dashboard" | "estoque" | "fornadas" | "notas";
+type Tab = "dashboard" | "estoque" | "fornadas" | "calendario" | "notas";
 
 const TABS: { id: Tab; label: string; short: string; icon: typeof Wallet }[] = [
   { id: "dashboard", label: "Financeiro", short: "Financeiro", icon: Wallet },
   { id: "estoque", label: "Estoque", short: "Estoque", icon: Package },
   { id: "fornadas", label: "Fornadas", short: "Fornadas", icon: Flame },
+  { id: "calendario", label: "Calendário", short: "Agenda", icon: CalendarDays },
   { id: "notas", label: "Notas", short: "Notas", icon: NotebookPen },
 ];
 
@@ -49,12 +51,13 @@ function Index() {
         {tab === "dashboard" && <Dashboard />}
         {tab === "estoque" && <Estoque />}
         {tab === "fornadas" && <Fornadas />}
+        {tab === "calendario" && <Calendario />}
         {tab === "notas" && <Notas />}
       </main>
 
       <nav className="fixed bottom-0 inset-x-0 md:static md:max-w-5xl md:mx-auto md:px-4 md:pb-6 z-20">
         <div className="bg-card/95 backdrop-blur border-t md:border md:rounded-2xl border-border shadow-[var(--shadow-warm)] md:mt-4">
-          <div className="grid grid-cols-4 gap-1 p-2">
+          <div className="grid grid-cols-5 gap-1 p-2">
             {TABS.map((t) => {
               const active = tab === t.id;
               const Icon = t.icon;

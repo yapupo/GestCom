@@ -21,8 +21,8 @@ export function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl md:text-4xl font-bold text-foreground">Olá! 👋</h2>
-        <p className="text-muted-foreground text-lg">Como está o negócio hoje?</p>
+        <h2 className="text-3xl md:text-4xl font-bold text-foreground">Resumo financeiro</h2>
+        <p className="text-muted-foreground text-lg">Acompanhe a saúde do negócio</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
