@@ -9,11 +9,27 @@ export interface Ingredient {
   purchasedQty: number;
   paidValue: number;
   currentQty: number;
+  minQty?: number;
 }
 
 export interface BatchItem {
   ingredientId: string;
   quantity: number;
+}
+
+export interface FlavorIngredient {
+  ingredientId: string;
+  /** Quantidade por 1 empada (na unidade do ingrediente) */
+  quantityPerUnit: number;
+}
+
+export interface Flavor {
+  id: string;
+  name: string;
+  /** Preço sugerido por empada */
+  price: number;
+  recipe: FlavorIngredient[];
+  color?: string;
 }
 
 export interface Batch {
@@ -24,6 +40,7 @@ export interface Batch {
   items: BatchItem[];
   totalCost: number;
   revenue: number;
+  flavorId?: string;
 }
 
 export interface FinanceEntry {
@@ -32,6 +49,8 @@ export interface FinanceEntry {
   type: "in" | "out";
   description: string;
   amount: number;
+  flavorId?: string;
+  quantity?: number;
 }
 
 export interface Note {
@@ -47,6 +66,7 @@ interface AppState {
   finance: FinanceEntry[];
   notes: string;
   noteList: Note[];
+  flavors: Flavor[];
 }
 
 const KEY = "empadas-app-v1";
@@ -57,6 +77,7 @@ const defaultState: AppState = {
   finance: [],
   notes: "",
   noteList: [],
+  flavors: [],
 };
 
 function load(): AppState {
@@ -90,6 +111,10 @@ export function useStore() {
   return state;
 }
 
+export function unitCostOf(ing: Ingredient) {
+  return ing.purchasedQty > 0 ? ing.paidValue / ing.purchasedQty : 0;
+}
+
 export const actions = {
   addIngredient(i: Omit<Ingredient, "id" | "currentQty"> & { currentQty?: number }) {
     state.ingredients.push({
@@ -114,22 +139,57 @@ export const actions = {
     state.ingredients = state.ingredients.filter((x) => x.id !== id);
     save();
   },
-  addBatch(batch: Omit<Batch, "id" | "totalCost" | "revenue" | "date"> & { date?: string }) {
+
+  addFlavor(f: Omit<Flavor, "id">) {
+    state.flavors.push({ ...f, id: crypto.randomUUID() });
+    save();
+  },
+  updateFlavor(id: string, patch: Partial<Flavor>) {
+    state.flavors = state.flavors.map((f) => (f.id === id ? { ...f, ...patch } : f));
+    save();
+  },
+  removeFlavor(id: string) {
+    state.flavors = state.flavors.filter((f) => f.id !== id);
+    save();
+  },
+
+  addBatch(batch: {
+    empadasQty: number;
+    pricePerUnit: number;
+    items?: BatchItem[];
+    flavorId?: string;
+    date?: string;
+  }) {
+    // If a flavor is provided and no items, derive items from recipe
+    let items = batch.items ?? [];
+    if ((!items || items.length === 0) && batch.flavorId) {
+      const flv = state.flavors.find((f) => f.id === batch.flavorId);
+      if (flv) {
+        items = flv.recipe.map((r) => ({
+          ingredientId: r.ingredientId,
+          quantity: r.quantityPerUnit * batch.empadasQty,
+        }));
+      }
+    }
+
     let totalCost = 0;
-    for (const item of batch.items) {
+    for (const item of items) {
       const ing = state.ingredients.find((i) => i.id === item.ingredientId);
       if (!ing) continue;
-      const unitCost = ing.purchasedQty > 0 ? ing.paidValue / ing.purchasedQty : 0;
-      totalCost += unitCost * item.quantity;
+      totalCost += unitCostOf(ing) * item.quantity;
       ing.currentQty = Math.max(0, ing.currentQty - item.quantity);
     }
     const revenue = batch.empadasQty * batch.pricePerUnit;
+    const flv = batch.flavorId ? state.flavors.find((f) => f.id === batch.flavorId) : null;
     const newBatch: Batch = {
-      ...batch,
       id: crypto.randomUUID(),
       date: batch.date ?? new Date().toISOString(),
+      empadasQty: batch.empadasQty,
+      pricePerUnit: batch.pricePerUnit,
+      items,
       totalCost,
       revenue,
+      flavorId: batch.flavorId,
     };
     state.batches.push(newBatch);
     if (revenue > 0) {
@@ -137,8 +197,12 @@ export const actions = {
         id: crypto.randomUUID(),
         date: newBatch.date,
         type: "in",
-        description: `Venda da fornada (${batch.empadasQty} empadas)`,
+        description: flv
+          ? `Fornada ${flv.name} (${batch.empadasQty} un)`
+          : `Venda da fornada (${batch.empadasQty} empadas)`,
         amount: revenue,
+        flavorId: batch.flavorId,
+        quantity: batch.empadasQty,
       });
     }
     save();
@@ -147,6 +211,29 @@ export const actions = {
     state.batches = state.batches.filter((b) => b.id !== id);
     save();
   },
+
+  /** Venda rápida: registra entrada de caixa, opcionalmente associada a sabor/qtd */
+  addSale(input: { flavorId?: string; quantity?: number; amount: number; description?: string }) {
+    const flv = input.flavorId ? state.flavors.find((f) => f.id === input.flavorId) : null;
+    const description =
+      input.description ||
+      (flv && input.quantity
+        ? `Venda ${flv.name} (${input.quantity} un)`
+        : flv
+        ? `Venda ${flv.name}`
+        : "Venda");
+    state.finance.push({
+      id: crypto.randomUUID(),
+      date: new Date().toISOString(),
+      type: "in",
+      description,
+      amount: input.amount,
+      flavorId: input.flavorId,
+      quantity: input.quantity,
+    });
+    save();
+  },
+
   setNotes(text: string) {
     state.notes = text;
     save();
@@ -185,6 +272,13 @@ export const actions = {
     save();
   },
 };
+
+export function lowStockIngredients(ings: Ingredient[]) {
+  return ings.filter((i) => {
+    if (i.minQty && i.minQty > 0) return i.currentQty <= i.minQty;
+    return i.purchasedQty > 0 && i.currentQty / i.purchasedQty < 0.2;
+  });
+}
 
 export function formatBRL(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

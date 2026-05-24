@@ -1,22 +1,14 @@
-import { useStore, formatBRL, actions } from "@/lib/store";
+import { useStore, formatBRL, actions, lowStockIngredients, formatQty } from "@/lib/store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { TrendingUp, TrendingDown, Wallet, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { TrendingUp, TrendingDown, Wallet, Trash2, AlertTriangle } from "lucide-react";
 
 export function Dashboard() {
   const s = useStore();
   const revenue = s.finance.filter((f) => f.type === "in").reduce((a, b) => a + b.amount, 0);
   const cost = s.finance.filter((f) => f.type === "out").reduce((a, b) => a + b.amount, 0);
   const profit = revenue - cost;
+  const lows = lowStockIngredients(s.ingredients);
 
   return (
     <div className="space-y-6">
@@ -47,14 +39,33 @@ export function Dashboard() {
         />
       </div>
 
+      {lows.length > 0 && (
+        <Card className="p-5 shadow-[var(--shadow-soft)] border-l-4 border-l-destructive/70 bg-destructive/5">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            <h3 className="font-semibold text-lg">Alertas de estoque</h3>
+          </div>
+          <ul className="flex flex-wrap gap-2">
+            {lows.map((i) => (
+              <li
+                key={i.id}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-card border border-destructive/30 text-sm"
+              >
+                <span className="font-medium">{i.name}</span>
+                <span className="text-muted-foreground">
+                  resta {formatQty(i.currentQty, i.unit)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       <Card className="p-6 shadow-[var(--shadow-soft)]">
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-          <h3 className="text-xl font-semibold">Histórico de Entradas e Saídas</h3>
-          <AddEntryDialog />
-        </div>
+        <h3 className="text-xl font-semibold mb-4">Histórico de Entradas e Saídas</h3>
         {s.finance.length === 0 ? (
           <p className="text-center py-12 text-muted-foreground">
-            Nenhuma movimentação ainda. Cadastre ingredientes ou registre vendas!
+            Nenhuma movimentação ainda. Use o botão <span className="font-semibold">+</span> para registrar uma venda ou gasto.
           </p>
         ) : (
           <ul className="divide-y divide-border">
@@ -109,55 +120,5 @@ function StatCard({ label, value, icon, tone, highlight }: {
       </div>
       <p className="text-3xl font-bold">{value}</p>
     </Card>
-  );
-}
-
-function AddEntryDialog() {
-  const [open, setOpen] = useState(false);
-  const [type, setType] = useState<"in" | "out">("in");
-  const [desc, setDesc] = useState("");
-  const [amount, setAmount] = useState("");
-
-  function submit() {
-    const a = parseFloat(amount.replace(",", "."));
-    if (!desc || isNaN(a) || a <= 0) return;
-    actions.addFinance({ type, description: desc, amount: a });
-    setDesc(""); setAmount(""); setOpen(false);
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="lg" className="gap-2">
-          <Plus className="h-5 w-5" /> Lançamento
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader><DialogTitle>Novo Lançamento</DialogTitle></DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label>Tipo</Label>
-            <Select value={type} onValueChange={(v) => setType(v as "in" | "out")}>
-              <SelectTrigger className="h-12"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="in">Entrada (Venda)</SelectItem>
-                <SelectItem value="out">Saída (Gasto)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Descrição</Label>
-            <Input className="h-12" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Ex: Venda na feira" />
-          </div>
-          <div>
-            <Label>Valor (R$)</Label>
-            <Input className="h-12" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0,00" />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button size="lg" onClick={submit}>Salvar</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

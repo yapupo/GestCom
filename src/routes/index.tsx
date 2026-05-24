@@ -1,17 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Wallet, Package, Flame, NotebookPen, Cookie, CalendarDays } from "lucide-react";
+import { Wallet, Package, Flame, NotebookPen, CalendarDays } from "lucide-react";
 import { Dashboard } from "@/components/Dashboard";
 import { Estoque } from "@/components/Estoque";
 import { Fornadas } from "@/components/Fornadas";
 import { Notas } from "@/components/Notas";
 import { Calendario } from "@/components/Calendario";
+import { QuickActionFab } from "@/components/QuickActionFab";
+import betoneiraLogo from "@/assets/betoneira.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Empadas da Tia — Gestão de Produção e Vendas" },
-      { name: "description", content: "Sistema simples para gestão financeira, estoque, fornadas e notas da fábrica caseira de empadas." },
+      { title: "Empada do Betoneira — Gestão de Produção e Vendas" },
+      { name: "description", content: "Sistema simples para gestão financeira, estoque, fornadas e sabores da Empada do Betoneira." },
     ],
   }),
   component: Index,
@@ -20,7 +22,7 @@ export const Route = createFileRoute("/")({
 type Tab = "dashboard" | "estoque" | "fornadas" | "calendario" | "notas";
 
 const TABS: { id: Tab; label: string; short: string; icon: typeof Wallet }[] = [
-  { id: "dashboard", label: "Financeiro", short: "Financeiro", icon: Wallet },
+  { id: "dashboard", label: "Financeiro", short: "Caixa", icon: Wallet },
   { id: "estoque", label: "Estoque", short: "Estoque", icon: Package },
   { id: "fornadas", label: "Fornadas", short: "Fornadas", icon: Flame },
   { id: "calendario", label: "Calendário", short: "Agenda", icon: CalendarDays },
@@ -34,14 +36,11 @@ function Index() {
     <div className="min-h-screen pb-28 md:pb-8">
       <header className="border-b border-border bg-card/60 backdrop-blur sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center gap-3">
-          <div
-            className="h-11 w-11 rounded-full flex items-center justify-center text-primary-foreground shadow-[var(--shadow-warm)]"
-            style={{ backgroundImage: "var(--gradient-primary)" }}
-          >
-            <Cookie className="h-6 w-6" />
+          <div className="h-12 w-12 rounded-2xl bg-card border border-border shadow-[var(--shadow-soft)] overflow-hidden flex items-center justify-center">
+            <img src={betoneiraLogo} alt="Empada do Betoneira" className="h-11 w-11 object-contain" />
           </div>
           <div>
-            <h1 className="text-xl font-bold leading-tight">Empadas da Tia</h1>
+            <h1 className="text-xl font-bold leading-tight">Empada do Betoneira</h1>
             <p className="text-xs text-muted-foreground">Produção & Vendas</p>
           </div>
         </div>
@@ -54,6 +53,8 @@ function Index() {
         {tab === "calendario" && <Calendario />}
         {tab === "notas" && <Notas />}
       </main>
+
+      <QuickActionFab />
 
       <nav className="fixed bottom-0 inset-x-0 md:static md:max-w-5xl md:mx-auto md:px-4 md:pb-6 z-20">
         <div className="bg-card/95 backdrop-blur border-t md:border md:rounded-2xl border-border shadow-[var(--shadow-warm)] md:mt-4">
