@@ -180,7 +180,6 @@ export const actions = {
       ing.currentQty = Math.max(0, ing.currentQty - item.quantity);
     }
     const revenue = batch.empadasQty * batch.pricePerUnit;
-    const flv = batch.flavorId ? state.flavors.find((f) => f.id === batch.flavorId) : null;
     const newBatch: Batch = {
       id: crypto.randomUUID(),
       date: batch.date ?? new Date().toISOString(),
