@@ -1,14 +1,15 @@
 import { useState } from "react";
-import { Plus, ShoppingCart, TrendingDown, X } from "lucide-react";
+import { Plus, ShoppingCart, TrendingDown, X, HandCoins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { useStore, actions, formatBRL } from "@/lib/store";
 
-type Mode = "menu" | "sale" | "expense";
+type Mode = "menu" | "sale" | "expense" | "fiado";
 
 export function QuickActionFab() {
   const [open, setOpen] = useState(false);
@@ -35,6 +36,7 @@ export function QuickActionFab() {
           {mode === "menu" && <MenuView onPick={setMode} />}
           {mode === "sale" && <SaleForm onDone={close} onBack={() => setMode("menu")} />}
           {mode === "expense" && <ExpenseForm onDone={close} onBack={() => setMode("menu")} />}
+          {mode === "fiado" && <FiadoForm onDone={close} onBack={() => setMode("menu")} />}
         </DialogContent>
       </Dialog>
     </>
@@ -47,31 +49,105 @@ function MenuView({ onPick }: { onPick: (m: Mode) => void }) {
       <DialogHeader>
         <DialogTitle className="text-2xl">O que você quer registrar?</DialogTitle>
       </DialogHeader>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
         <button
           onClick={() => onPick("sale")}
-          className="rounded-2xl p-6 bg-success/10 hover:bg-success/15 text-left transition-colors border border-success/20"
+          className="rounded-2xl p-5 bg-success/10 hover:bg-success/15 text-left transition-colors border border-success/20"
         >
           <div className="h-12 w-12 rounded-full bg-success/20 text-success flex items-center justify-center mb-3">
             <ShoppingCart className="h-6 w-6" />
           </div>
-          <p className="text-xl font-bold">Nova Venda</p>
-          <p className="text-sm text-muted-foreground">Registrar entrada no caixa</p>
+          <p className="text-lg font-bold">Nova Venda</p>
+          <p className="text-sm text-muted-foreground">Entrada no caixa</p>
+        </button>
+        <button
+          onClick={() => onPick("fiado")}
+          className="rounded-2xl p-5 bg-primary/10 hover:bg-primary/15 text-left transition-colors border border-primary/20"
+        >
+          <div className="h-12 w-12 rounded-full bg-primary/20 text-primary flex items-center justify-center mb-3">
+            <HandCoins className="h-6 w-6" />
+          </div>
+          <p className="text-lg font-bold">Novo Fiado</p>
+          <p className="text-sm text-muted-foreground">Cliente vai pagar depois</p>
         </button>
         <button
           onClick={() => onPick("expense")}
-          className="rounded-2xl p-6 bg-destructive/10 hover:bg-destructive/15 text-left transition-colors border border-destructive/20"
+          className="rounded-2xl p-5 bg-destructive/10 hover:bg-destructive/15 text-left transition-colors border border-destructive/20"
         >
           <div className="h-12 w-12 rounded-full bg-destructive/20 text-destructive flex items-center justify-center mb-3">
             <TrendingDown className="h-6 w-6" />
           </div>
-          <p className="text-xl font-bold">Novo Gasto</p>
-          <p className="text-sm text-muted-foreground">Compra, despesa, saída</p>
+          <p className="text-lg font-bold">Novo Gasto</p>
+          <p className="text-sm text-muted-foreground">Compra, despesa</p>
         </button>
       </div>
     </>
   );
 }
+
+function FiadoForm({ onDone, onBack }: { onDone: () => void; onBack: () => void }) {
+  const [name, setName] = useState("");
+  const [items, setItems] = useState("");
+  const [amount, setAmount] = useState("");
+
+  function submit() {
+    if (!name.trim() || !items.trim()) return;
+    const a = parseFloat(amount.replace(",", ".")) || 0;
+    actions.addFiado({
+      customerName: name.trim(),
+      items: items.trim(),
+      amount: a > 0 ? a : undefined,
+    });
+    onDone();
+  }
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle className="text-2xl">Novo Fiado</DialogTitle>
+      </DialogHeader>
+      <div className="space-y-4 mt-2">
+        <div>
+          <Label className="text-base">Nome do cliente</Label>
+          <Input
+            className="h-14 text-lg"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ex: Seu João"
+          />
+        </div>
+        <div>
+          <Label className="text-base">O que pegou</Label>
+          <Textarea
+            className="min-h-[100px] text-lg"
+            value={items}
+            onChange={(e) => setItems(e.target.value)}
+            placeholder="Ex: 3 empadas de frango, 1 refrigerante"
+          />
+        </div>
+        <div>
+          <Label className="text-base">Valor (opcional, R$)</Label>
+          <Input
+            className="h-14 text-lg"
+            inputMode="decimal"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="0,00"
+          />
+        </div>
+      </div>
+      <DialogFooter className="gap-2 sm:gap-2">
+        <Button variant="ghost" size="lg" onClick={onBack} className="h-12">
+          <X className="h-4 w-4" /> Voltar
+        </Button>
+        <Button size="lg" onClick={submit} disabled={!name.trim() || !items.trim()} className="h-12 text-base">
+          Salvar fiado
+        </Button>
+      </DialogFooter>
+    </>
+  );
+}
+
 
 function SaleForm({ onDone, onBack }: { onDone: () => void; onBack: () => void }) {
   const s = useStore();
