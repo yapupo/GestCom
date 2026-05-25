@@ -78,6 +78,7 @@ function SaleForm({ onDone, onBack }: { onDone: () => void; onBack: () => void }
   const [flavorId, setFlavorId] = useState<string | null>(null);
   const [qty, setQty] = useState("1");
   const [price, setPrice] = useState("");
+  const [customerName, setCustomerName] = useState("");
 
   const flv = s.flavors.find((f) => f.id === flavorId);
   const qtyNum = parseInt(qty) || 0;
@@ -97,6 +98,7 @@ function SaleForm({ onDone, onBack }: { onDone: () => void; onBack: () => void }
       quantity: flv ? qtyNum : undefined,
       amount: total,
       description: flv ? undefined : `Venda avulsa`,
+      customerName: customerName.trim() || undefined,
     });
     onDone();
   }
@@ -151,6 +153,16 @@ function SaleForm({ onDone, onBack }: { onDone: () => void; onBack: () => void }
               placeholder="0,00"
             />
           </div>
+        </div>
+
+        <div>
+          <Label className="text-base">Cliente (opcional)</Label>
+          <Input
+            className="h-14 text-lg"
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+            placeholder="Nome de quem comprou"
+          />
         </div>
 
         <div className="rounded-2xl bg-muted/50 p-4 flex items-center justify-between">
