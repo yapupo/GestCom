@@ -61,7 +61,7 @@ function Index() {
 
       <nav className="fixed bottom-0 inset-x-0 md:static md:max-w-5xl md:mx-auto md:px-4 md:pb-6 z-20">
         <div className="bg-card/95 backdrop-blur border-t md:border md:rounded-2xl border-border shadow-[var(--shadow-warm)] md:mt-4">
-          <div className="grid grid-cols-5 gap-1 p-2">
+          <div className="grid grid-cols-6 gap-1 p-2">
             {TABS.map((t) => {
               const active = tab === t.id;
               const Icon = t.icon;
