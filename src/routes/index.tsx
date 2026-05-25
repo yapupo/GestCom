@@ -52,6 +52,7 @@ function Index() {
         {tab === "dashboard" && <Dashboard />}
         {tab === "estoque" && <Estoque />}
         {tab === "fornadas" && <Fornadas />}
+        {tab === "fiado" && <Fiado />}
         {tab === "calendario" && <Calendario />}
         {tab === "notas" && <Notas />}
       </main>
