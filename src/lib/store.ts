@@ -51,6 +51,7 @@ export interface FinanceEntry {
   amount: number;
   flavorId?: string;
   quantity?: number;
+  customerName?: string;
 }
 
 export interface Note {
@@ -60,6 +61,16 @@ export interface Note {
   updatedAt: string;
 }
 
+export interface FiadoEntry {
+  id: string;
+  date: string;
+  customerName: string;
+  items: string;
+  amount?: number;
+  paid: boolean;
+  paidAt?: string;
+}
+
 interface AppState {
   ingredients: Ingredient[];
   batches: Batch[];
@@ -67,6 +78,7 @@ interface AppState {
   notes: string;
   noteList: Note[];
   flavors: Flavor[];
+  fiados: FiadoEntry[];
 }
 
 const KEY = "empadas-app-v1";
@@ -78,6 +90,7 @@ const defaultState: AppState = {
   notes: "",
   noteList: [],
   flavors: [],
+  fiados: [],
 };
 
 function load(): AppState {
