@@ -180,7 +180,6 @@ export const actions = {
       ing.currentQty = Math.max(0, ing.currentQty - item.quantity);
     }
     const revenue = batch.empadasQty * batch.pricePerUnit;
-    const flv = batch.flavorId ? state.flavors.find((f) => f.id === batch.flavorId) : null;
     const newBatch: Batch = {
       id: crypto.randomUUID(),
       date: batch.date ?? new Date().toISOString(),
@@ -192,19 +191,8 @@ export const actions = {
       flavorId: batch.flavorId,
     };
     state.batches.push(newBatch);
-    if (revenue > 0) {
-      state.finance.push({
-        id: crypto.randomUUID(),
-        date: newBatch.date,
-        type: "in",
-        description: flv
-          ? `Fornada ${flv.name} (${batch.empadasQty} un)`
-          : `Venda da fornada (${batch.empadasQty} empadas)`,
-        amount: revenue,
-        flavorId: batch.flavorId,
-        quantity: batch.empadasQty,
-      });
-    }
+    // Receita é registrada apenas quando há uma venda real (ver addSale).
+    // A fornada guarda receita potencial só para projeção de lucro.
     save();
   },
   removeBatch(id: string) {
