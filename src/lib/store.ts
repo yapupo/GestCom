@@ -214,15 +214,16 @@ export const actions = {
   },
 
   /** Venda rápida: registra entrada de caixa, opcionalmente associada a sabor/qtd */
-  addSale(input: { flavorId?: string; quantity?: number; amount: number; description?: string }) {
+  addSale(input: { flavorId?: string; quantity?: number; amount: number; description?: string; customerName?: string }) {
     const flv = input.flavorId ? state.flavors.find((f) => f.id === input.flavorId) : null;
-    const description =
+    const base =
       input.description ||
       (flv && input.quantity
         ? `Venda ${flv.name} (${input.quantity} un)`
         : flv
         ? `Venda ${flv.name}`
         : "Venda");
+    const description = input.customerName ? `${base} — ${input.customerName}` : base;
     state.finance.push({
       id: crypto.randomUUID(),
       date: new Date().toISOString(),
@@ -231,7 +232,45 @@ export const actions = {
       amount: input.amount,
       flavorId: input.flavorId,
       quantity: input.quantity,
+      customerName: input.customerName,
     });
+    save();
+  },
+
+  addFiado(input: { customerName: string; items: string; amount?: number }) {
+    state.fiados.push({
+      id: crypto.randomUUID(),
+      date: new Date().toISOString(),
+      customerName: input.customerName,
+      items: input.items,
+      amount: input.amount,
+      paid: false,
+    });
+    save();
+  },
+  updateFiado(id: string, patch: Partial<Pick<FiadoEntry, "customerName" | "items" | "amount">>) {
+    state.fiados = state.fiados.map((f) => (f.id === id ? { ...f, ...patch } : f));
+    save();
+  },
+  markFiadoPaid(id: string, registerSale = true) {
+    const f = state.fiados.find((x) => x.id === id);
+    if (!f) return;
+    f.paid = true;
+    f.paidAt = new Date().toISOString();
+    if (registerSale && f.amount && f.amount > 0) {
+      state.finance.push({
+        id: crypto.randomUUID(),
+        date: new Date().toISOString(),
+        type: "in",
+        description: `Pagamento fiado — ${f.customerName}`,
+        amount: f.amount,
+        customerName: f.customerName,
+      });
+    }
+    save();
+  },
+  removeFiado(id: string) {
+    state.fiados = state.fiados.filter((f) => f.id !== id);
     save();
   },
 
