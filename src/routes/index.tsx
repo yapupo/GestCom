@@ -69,14 +69,14 @@ function Index() {
                 <button
                   key={t.id}
                   onClick={() => setTab(t.id)}
-                  className={`flex flex-col items-center justify-center gap-1 py-3 rounded-xl transition-all ${
+                  className={`flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl transition-all ${
                     active
                       ? "bg-primary text-primary-foreground shadow-[var(--shadow-soft)]"
                       : "text-muted-foreground hover:bg-muted"
                   }`}
                 >
-                  <Icon className="h-6 w-6" />
-                  <span className="text-xs font-semibold">{t.short}</span>
+                  <Icon className="h-5 w-5" />
+                  <span className="text-[10px] font-semibold">{t.short}</span>
                 </button>
               );
             })}
