@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Wallet, Package, Flame, NotebookPen, CalendarDays } from "lucide-react";
+import { Wallet, Package, Flame, NotebookPen, CalendarDays, HandCoins } from "lucide-react";
 import { Dashboard } from "@/components/Dashboard";
 import { Estoque } from "@/components/Estoque";
 import { Fornadas } from "@/components/Fornadas";
 import { Notas } from "@/components/Notas";
 import { Calendario } from "@/components/Calendario";
+import { Fiado } from "@/components/Fiado";
 import { QuickActionFab } from "@/components/QuickActionFab";
 import betoneiraLogo from "@/assets/betoneira.png";
 
@@ -19,12 +20,13 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Tab = "dashboard" | "estoque" | "fornadas" | "calendario" | "notas";
+type Tab = "dashboard" | "estoque" | "fornadas" | "fiado" | "calendario" | "notas";
 
 const TABS: { id: Tab; label: string; short: string; icon: typeof Wallet }[] = [
   { id: "dashboard", label: "Financeiro", short: "Caixa", icon: Wallet },
   { id: "estoque", label: "Estoque", short: "Estoque", icon: Package },
   { id: "fornadas", label: "Fornadas", short: "Fornadas", icon: Flame },
+  { id: "fiado", label: "Fiado", short: "Fiado", icon: HandCoins },
   { id: "calendario", label: "Calendário", short: "Agenda", icon: CalendarDays },
   { id: "notas", label: "Notas", short: "Notas", icon: NotebookPen },
 ];
