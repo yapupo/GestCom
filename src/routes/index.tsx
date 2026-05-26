@@ -105,6 +105,7 @@ function Index() {
       </main>
 
       <QuickActionFab open={saleOpen} onOpenChange={setSaleOpen} initialMode="sale" hideFab />
+      <QuickActionFab />
 
       {/* Bottom nav: foco em 3 ações + menu */}
       <nav className="fixed bottom-0 inset-x-0 md:static md:max-w-5xl md:mx-auto md:px-4 md:pb-6 z-20">
