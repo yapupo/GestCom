@@ -1,4 +1,4 @@
-import { useStore, actions, formatBRL, formatQty, type IngredientUnit, type FlavorIngredient } from "@/lib/store";
+import { useStore, actions, formatBRL, formatQty, inputUnitFor, type IngredientUnit, type FlavorIngredient } from "@/lib/store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
