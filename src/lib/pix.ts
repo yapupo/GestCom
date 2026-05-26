@@ -44,9 +44,7 @@ export function buildPixPayload({ key, amount, merchantName, merchantCity, txid 
   const txidClean = sanitize(txid, 25) || "***";
   const additional = tlv("62", tlv("05", txidClean));
 
-  const payload =
-    tlv("00", "01") +                                  // Payload format
-    tlv("26", gui + k).slice(0) || merchantAccount;    // (kept for clarity)
+
 
   const full =
     tlv("00", "01") +
