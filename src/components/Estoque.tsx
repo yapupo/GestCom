@@ -214,43 +214,58 @@ function SaboresSection() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {s.flavors.map((f) => (
-            <Card key={f.id} className="p-5 shadow-[var(--shadow-soft)]">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-xl font-semibold">{f.name}</h3>
-                  <p className="text-2xl font-bold text-primary mt-1">{formatBRL(f.price)}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">por empada</p>
+          {s.flavors.map((f) => {
+            const yld = f.recipeYield ?? 1;
+            return (
+              <Card key={f.id} className="p-5 shadow-[var(--shadow-soft)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-xl font-semibold">{f.name}</h3>
+                    <p className="text-2xl font-bold text-primary mt-1">{formatBRL(f.price)}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      por empada · receita rende {yld} un.
+                    </p>
+                  </div>
+                  <div className="flex gap-1">
+                    <FlavorDialog flavorId={f.id} trigger={
+                      <Button size="icon" variant="ghost" className="h-11 w-11"><Pencil className="h-4 w-4" /></Button>
+                    } />
+                    <Button size="icon" variant="ghost" className="h-11 w-11" onClick={() => actions.removeFlavor(f.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-1">
-                  <FlavorDialog flavorId={f.id} trigger={
-                    <Button size="icon" variant="ghost" className="h-11 w-11"><Pencil className="h-4 w-4" /></Button>
-                  } />
-                  <Button size="icon" variant="ghost" className="h-11 w-11" onClick={() => actions.removeFlavor(f.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              {f.recipe.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-border">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Por empada</p>
-                  <ul className="space-y-1 text-sm">
-                    {f.recipe.map((r, idx) => {
-                      const ing = s.ingredients.find((i) => i.id === r.ingredientId);
-                      return (
-                        <li key={idx} className="flex justify-between">
-                          <span>{ing?.name ?? "(removido)"}</span>
-                          <span className="text-muted-foreground">
-                            {ing ? formatQty(r.quantityPerUnit, ing.unit) : r.quantityPerUnit}
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              )}
-            </Card>
-          ))}
+                {f.recipe.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">
+                      Receita do lote ({yld} un.)
+                    </p>
+                    <ul className="space-y-1 text-sm">
+                      {f.recipe.map((r, idx) => {
+                        const ing = s.ingredients.find((i) => i.id === r.ingredientId);
+                        if (!ing) return (
+                          <li key={idx} className="flex justify-between">
+                            <span>(removido)</span>
+                            <span className="text-muted-foreground">{r.quantityPerUnit}</span>
+                          </li>
+                        );
+                        const iu = inputUnitFor(ing.unit);
+                        const total = iu.fromBase(r.quantityPerUnit * yld);
+                        return (
+                          <li key={idx} className="flex justify-between">
+                            <span>{ing.name}</span>
+                            <span className="text-muted-foreground">
+                              {total.toLocaleString("pt-BR", { maximumFractionDigits: iu.integer ? 0 : 2 })} {iu.label}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
