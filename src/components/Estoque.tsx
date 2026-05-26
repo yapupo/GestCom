@@ -1,4 +1,4 @@
-import { useStore, actions, formatBRL, formatQty, type IngredientUnit, type FlavorIngredient } from "@/lib/store";
+import { useStore, actions, formatBRL, formatQty, inputUnitFor, type IngredientUnit, type FlavorIngredient } from "@/lib/store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -214,43 +214,58 @@ function SaboresSection() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {s.flavors.map((f) => (
-            <Card key={f.id} className="p-5 shadow-[var(--shadow-soft)]">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-xl font-semibold">{f.name}</h3>
-                  <p className="text-2xl font-bold text-primary mt-1">{formatBRL(f.price)}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">por empada</p>
+          {s.flavors.map((f) => {
+            const yld = f.recipeYield ?? 1;
+            return (
+              <Card key={f.id} className="p-5 shadow-[var(--shadow-soft)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-xl font-semibold">{f.name}</h3>
+                    <p className="text-2xl font-bold text-primary mt-1">{formatBRL(f.price)}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      por empada · receita rende {yld} un.
+                    </p>
+                  </div>
+                  <div className="flex gap-1">
+                    <FlavorDialog flavorId={f.id} trigger={
+                      <Button size="icon" variant="ghost" className="h-11 w-11"><Pencil className="h-4 w-4" /></Button>
+                    } />
+                    <Button size="icon" variant="ghost" className="h-11 w-11" onClick={() => actions.removeFlavor(f.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-1">
-                  <FlavorDialog flavorId={f.id} trigger={
-                    <Button size="icon" variant="ghost" className="h-11 w-11"><Pencil className="h-4 w-4" /></Button>
-                  } />
-                  <Button size="icon" variant="ghost" className="h-11 w-11" onClick={() => actions.removeFlavor(f.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              {f.recipe.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-border">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Por empada</p>
-                  <ul className="space-y-1 text-sm">
-                    {f.recipe.map((r, idx) => {
-                      const ing = s.ingredients.find((i) => i.id === r.ingredientId);
-                      return (
-                        <li key={idx} className="flex justify-between">
-                          <span>{ing?.name ?? "(removido)"}</span>
-                          <span className="text-muted-foreground">
-                            {ing ? formatQty(r.quantityPerUnit, ing.unit) : r.quantityPerUnit}
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              )}
-            </Card>
-          ))}
+                {f.recipe.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">
+                      Receita do lote ({yld} un.)
+                    </p>
+                    <ul className="space-y-1 text-sm">
+                      {f.recipe.map((r, idx) => {
+                        const ing = s.ingredients.find((i) => i.id === r.ingredientId);
+                        if (!ing) return (
+                          <li key={idx} className="flex justify-between">
+                            <span>(removido)</span>
+                            <span className="text-muted-foreground">{r.quantityPerUnit}</span>
+                          </li>
+                        );
+                        const iu = inputUnitFor(ing.unit);
+                        const total = iu.fromBase(r.quantityPerUnit * yld);
+                        return (
+                          <li key={idx} className="flex justify-between">
+                            <span>{ing.name}</span>
+                            <span className="text-muted-foreground">
+                              {total.toLocaleString("pt-BR", { maximumFractionDigits: iu.integer ? 0 : 2 })} {iu.label}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
@@ -263,26 +278,45 @@ function FlavorDialog({ flavorId, trigger }: { flavorId?: string; trigger?: Reac
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(existing?.name ?? "");
   const [price, setPrice] = useState(existing ? String(existing.price).replace(".", ",") : "");
+  const [yieldStr, setYieldStr] = useState(existing ? String(existing.recipeYield ?? 1) : "30");
   const [recipe, setRecipe] = useState<Record<string, string>>(() => {
     const r: Record<string, string> = {};
-    existing?.recipe.forEach((x) => { r[x.ingredientId] = String(x.quantityPerUnit).replace(".", ","); });
+    if (existing) {
+      const yld = existing.recipeYield ?? 1;
+      existing.recipe.forEach((x) => {
+        const ing = s.ingredients.find((i) => i.id === x.ingredientId);
+        if (!ing) return;
+        const iu = inputUnitFor(ing.unit);
+        const total = iu.fromBase(x.quantityPerUnit * yld);
+        r[x.ingredientId] = iu.integer ? String(Math.round(total)) : String(total).replace(".", ",");
+      });
+    }
     return r;
   });
 
   function reset() {
-    if (!existing) { setName(""); setPrice(""); setRecipe({}); }
+    if (!existing) { setName(""); setPrice(""); setRecipe({}); setYieldStr("30"); }
   }
 
   function submit() {
     const p = parseFloat(price.replace(",", ".")) || 0;
-    if (!name) return;
+    const yld = parseInt(yieldStr) || 0;
+    if (!name || yld <= 0) return;
     const finalRecipe: FlavorIngredient[] = Object.entries(recipe)
-      .map(([ingredientId, q]) => ({ ingredientId, quantityPerUnit: parseFloat(q.replace(",", ".")) || 0 }))
-      .filter((x) => x.quantityPerUnit > 0);
+      .map(([ingredientId, q]) => {
+        const ing = s.ingredients.find((i) => i.id === ingredientId);
+        if (!ing) return null;
+        const iu = inputUnitFor(ing.unit);
+        const total = parseFloat(q.replace(",", ".")) || 0;
+        if (total <= 0) return null;
+        return { ingredientId, quantityPerUnit: iu.toBase(total) / yld };
+      })
+      .filter((x): x is FlavorIngredient => !!x);
+
     if (existing) {
-      actions.updateFlavor(existing.id, { name, price: p, recipe: finalRecipe });
+      actions.updateFlavor(existing.id, { name, price: p, recipe: finalRecipe, recipeYield: yld });
     } else {
-      actions.addFlavor({ name, price: p, recipe: finalRecipe });
+      actions.addFlavor({ name, price: p, recipe: finalRecipe, recipeYield: yld });
     }
     reset();
     setOpen(false);
@@ -313,32 +347,55 @@ function FlavorDialog({ flavorId, trigger }: { flavorId?: string; trigger?: Reac
             </div>
           </div>
 
+          <div className="rounded-2xl bg-primary/5 border border-primary/20 p-4">
+            <Label className="text-base font-semibold">Rendimento da receita</Label>
+            <p className="text-xs text-muted-foreground mt-1 mb-2">
+              Quantas empadas esta receita inteira faz? Os valores abaixo serão o total do lote.
+            </p>
+            <div className="flex items-center gap-2">
+              <Input
+                className="h-12 text-lg w-28"
+                inputMode="numeric"
+                value={yieldStr}
+                onChange={(e) => setYieldStr(e.target.value.replace(/\D/g, ""))}
+                placeholder="30"
+              />
+              <span className="text-base font-medium text-muted-foreground">empadas</span>
+            </div>
+          </div>
+
           <div>
-            <Label className="text-base">Receita (por 1 empada)</Label>
+            <Label className="text-base">Ingredientes do lote</Label>
             {s.ingredients.length === 0 ? (
               <p className="text-sm text-muted-foreground mt-2">
                 Cadastre ingredientes antes para montar a receita.
               </p>
             ) : (
               <div className="space-y-2 mt-2">
-                {s.ingredients.map((i) => (
-                  <div key={i.id} className="flex items-center gap-2 bg-muted/50 p-3 rounded-xl">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{i.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Estoque: {formatQty(i.currentQty, i.unit)}
-                      </p>
+                {s.ingredients.map((i) => {
+                  const iu = inputUnitFor(i.unit);
+                  return (
+                    <div key={i.id} className="flex items-center gap-2 bg-muted/50 p-3 rounded-xl">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{i.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Estoque: {formatQty(i.currentQty, i.unit)}
+                        </p>
+                      </div>
+                      <Input
+                        className="h-11 w-24 text-right"
+                        inputMode={iu.integer ? "numeric" : "decimal"}
+                        placeholder="0"
+                        value={recipe[i.id] ?? ""}
+                        onChange={(e) => {
+                          const raw = iu.integer ? e.target.value.replace(/\D/g, "") : e.target.value;
+                          setRecipe({ ...recipe, [i.id]: raw });
+                        }}
+                      />
+                      <span className="text-sm font-medium text-muted-foreground w-8">{iu.label}</span>
                     </div>
-                    <Input
-                      className="h-11 w-24"
-                      inputMode="decimal"
-                      placeholder="0"
-                      value={recipe[i.id] ?? ""}
-                      onChange={(e) => setRecipe({ ...recipe, [i.id]: e.target.value })}
-                    />
-                    <span className="text-sm text-muted-foreground w-8">{i.unit}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

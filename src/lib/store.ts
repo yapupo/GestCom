@@ -29,6 +29,8 @@ export interface Flavor {
   /** Preço sugerido por empada */
   price: number;
   recipe: FlavorIngredient[];
+  /** Quantidade de empadas que a receita inteira rende (lote). */
+  recipeYield?: number;
   color?: string;
 }
 
@@ -327,3 +329,19 @@ export function formatBRL(n: number) {
 export function formatQty(n: number, unit: IngredientUnit) {
   return `${n.toLocaleString("pt-BR", { maximumFractionDigits: 3 })} ${unit}`;
 }
+
+/**
+ * Unidade amigável para entrada de receita.
+ * Ingredientes em kg são digitados em gramas (inteiros), kg internamente.
+ */
+export function inputUnitFor(unit: IngredientUnit): { label: string; toBase: (n: number) => number; fromBase: (n: number) => number; integer: boolean } {
+  switch (unit) {
+    case "kg":
+      return { label: "g", toBase: (n) => n / 1000, fromBase: (n) => n * 1000, integer: true };
+    case "g":
+      return { label: "g", toBase: (n) => n, fromBase: (n) => n, integer: true };
+    case "un":
+      return { label: "un", toBase: (n) => n, fromBase: (n) => n, integer: true };
+  }
+}
+

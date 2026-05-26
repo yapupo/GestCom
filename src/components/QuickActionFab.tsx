@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Plus, ShoppingCart, TrendingDown, X, HandCoins } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Plus, ShoppingCart, TrendingDown, X, HandCoins, Banknote, QrCode, Copy, Check } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,12 +9,24 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { useStore, actions, formatBRL } from "@/lib/store";
+import { buildPixPayload, PIX_DEFAULTS } from "@/lib/pix";
 
 type Mode = "menu" | "sale" | "expense" | "fiado";
 
-export function QuickActionFab() {
-  const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<Mode>("menu");
+interface Props {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  initialMode?: Mode;
+  hideFab?: boolean;
+}
+
+export function QuickActionFab({ open: ctrlOpen, onOpenChange, initialMode = "menu", hideFab }: Props = {}) {
+  const [uOpen, setUOpen] = useState(false);
+  const open = ctrlOpen ?? uOpen;
+  const setOpen = (v: boolean) => { onOpenChange ? onOpenChange(v) : setUOpen(v); };
+  const [mode, setMode] = useState<Mode>(initialMode);
+
+  useEffect(() => { if (open) setMode(initialMode); }, [open, initialMode]);
 
   function close() {
     setOpen(false);
@@ -22,14 +35,16 @@ export function QuickActionFab() {
 
   return (
     <>
-      <button
-        aria-label="Ações rápidas"
-        onClick={() => { setMode("menu"); setOpen(true); }}
-        className="fixed z-30 bottom-[6.5rem] right-5 md:bottom-8 md:right-8 h-16 w-16 rounded-full flex items-center justify-center text-primary-foreground shadow-[var(--shadow-warm)] active:scale-95 transition-transform"
-        style={{ backgroundImage: "var(--gradient-primary)" }}
-      >
-        <Plus className="h-7 w-7" />
-      </button>
+      {!hideFab && (
+        <button
+          aria-label="Ações rápidas"
+          onClick={() => { setMode("menu"); setOpen(true); }}
+          className="fixed z-30 bottom-[6.5rem] right-5 md:bottom-8 md:right-8 h-16 w-16 rounded-full flex items-center justify-center text-primary-foreground shadow-[var(--shadow-warm)] active:scale-95 transition-transform"
+          style={{ backgroundImage: "var(--gradient-primary)" }}
+        >
+          <Plus className="h-7 w-7" />
+        </button>
+      )}
 
       <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
@@ -109,31 +124,15 @@ function FiadoForm({ onDone, onBack }: { onDone: () => void; onBack: () => void 
       <div className="space-y-4 mt-2">
         <div>
           <Label className="text-base">Nome do cliente</Label>
-          <Input
-            className="h-14 text-lg"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Ex: Seu João"
-          />
+          <Input className="h-14 text-lg" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Seu João" />
         </div>
         <div>
           <Label className="text-base">O que pegou</Label>
-          <Textarea
-            className="min-h-[100px] text-lg"
-            value={items}
-            onChange={(e) => setItems(e.target.value)}
-            placeholder="Ex: 3 empadas de frango, 1 refrigerante"
-          />
+          <Textarea className="min-h-[100px] text-lg" value={items} onChange={(e) => setItems(e.target.value)} placeholder="Ex: 3 empadas de frango, 1 refrigerante" />
         </div>
         <div>
           <Label className="text-base">Valor (opcional, R$)</Label>
-          <Input
-            className="h-14 text-lg"
-            inputMode="decimal"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="0,00"
-          />
+          <Input className="h-14 text-lg" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0,00" />
         </div>
       </div>
       <DialogFooter className="gap-2 sm:gap-2">
@@ -148,6 +147,8 @@ function FiadoForm({ onDone, onBack }: { onDone: () => void; onBack: () => void 
   );
 }
 
+type PayMethod = "dinheiro" | "pix";
+type Step = "form" | "payment" | "pix";
 
 function SaleForm({ onDone, onBack }: { onDone: () => void; onBack: () => void }) {
   const s = useStore();
@@ -155,11 +156,19 @@ function SaleForm({ onDone, onBack }: { onDone: () => void; onBack: () => void }
   const [qty, setQty] = useState("1");
   const [price, setPrice] = useState("");
   const [customerName, setCustomerName] = useState("");
+  const [step, setStep] = useState<Step>("form");
+  const [method, setMethod] = useState<PayMethod>("dinheiro");
+  const [copied, setCopied] = useState(false);
 
   const flv = s.flavors.find((f) => f.id === flavorId);
   const qtyNum = parseInt(qty) || 0;
   const priceNum = parseFloat(price.replace(",", ".")) || 0;
   const total = qtyNum * priceNum;
+
+  const pixPayload = useMemo(() => {
+    if (total <= 0) return "";
+    return buildPixPayload({ ...PIX_DEFAULTS, amount: total });
+  }, [total]);
 
   function pickFlavor(id: string) {
     setFlavorId(id);
@@ -167,16 +176,103 @@ function SaleForm({ onDone, onBack }: { onDone: () => void; onBack: () => void }
     if (f) setPrice(String(f.price).replace(".", ","));
   }
 
-  function submit() {
+  function register(payMethod: PayMethod) {
     if (total <= 0) return;
+    const desc = flv ? undefined : "Venda avulsa";
     actions.addSale({
       flavorId: flv?.id,
       quantity: flv ? qtyNum : undefined,
       amount: total,
-      description: flv ? undefined : `Venda avulsa`,
+      description: desc ? `${desc} (${payMethod === "pix" ? "PIX" : "Dinheiro"})` : `${flv?.name} — ${payMethod === "pix" ? "PIX" : "Dinheiro"}`,
       customerName: customerName.trim() || undefined,
     });
     onDone();
+  }
+
+  function copyPix() {
+    navigator.clipboard.writeText(pixPayload);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+
+  if (step === "pix") {
+    return (
+      <>
+        <DialogHeader>
+          <DialogTitle className="text-2xl flex items-center gap-2">
+            <QrCode className="h-6 w-6" /> Pagamento PIX
+          </DialogTitle>
+        </DialogHeader>
+        <div className="mt-2 space-y-4">
+          <div className="text-center">
+            <p className="text-muted-foreground text-sm">Total a receber</p>
+            <p className="text-4xl font-bold text-success">{formatBRL(total)}</p>
+          </div>
+          <div className="bg-white rounded-2xl p-5 flex justify-center border border-border">
+            <QRCodeSVG value={pixPayload} size={232} level="M" />
+          </div>
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={copyPix}
+            className="w-full h-12 gap-2"
+          >
+            {copied ? <Check className="h-5 w-5 text-success" /> : <Copy className="h-5 w-5" />}
+            {copied ? "Código copiado!" : "Copiar código PIX"}
+          </Button>
+          <p className="text-xs text-center text-muted-foreground">
+            Chave CPF · Empada do Betoneira
+          </p>
+        </div>
+        <DialogFooter className="gap-2 sm:gap-2 mt-2">
+          <Button variant="ghost" size="lg" onClick={() => setStep("payment")} className="h-12">
+            <X className="h-4 w-4" /> Voltar
+          </Button>
+          <Button size="lg" onClick={() => register("pix")} className="h-12 text-base">
+            Confirmar pagamento
+          </Button>
+        </DialogFooter>
+      </>
+    );
+  }
+
+  if (step === "payment") {
+    return (
+      <>
+        <DialogHeader>
+          <DialogTitle className="text-2xl">Forma de pagamento</DialogTitle>
+        </DialogHeader>
+        <div className="mt-2 space-y-4">
+          <div className="rounded-2xl bg-muted/50 p-4 flex items-center justify-between">
+            <span className="text-muted-foreground">Total</span>
+            <span className="text-3xl font-bold text-success">{formatBRL(total)}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => { setMethod("dinheiro"); register("dinheiro"); }}
+              className="rounded-2xl p-6 bg-success/10 hover:bg-success/15 border-2 border-success/30 transition-all active:scale-[0.98]"
+            >
+              <Banknote className="h-10 w-10 mx-auto text-success mb-2" />
+              <p className="text-lg font-bold">Dinheiro</p>
+              <p className="text-xs text-muted-foreground mt-1">Registrar e fechar</p>
+            </button>
+            <button
+              onClick={() => { setMethod("pix"); setStep("pix"); }}
+              className="rounded-2xl p-6 bg-primary/10 hover:bg-primary/15 border-2 border-primary/30 transition-all active:scale-[0.98]"
+            >
+              <QrCode className="h-10 w-10 mx-auto text-primary mb-2" />
+              <p className="text-lg font-bold">PIX</p>
+              <p className="text-xs text-muted-foreground mt-1">Gerar QR Code</p>
+            </button>
+          </div>
+        </div>
+        <DialogFooter className="mt-2">
+          <Button variant="ghost" size="lg" onClick={() => setStep("form")} className="h-12">
+            <X className="h-4 w-4" /> Voltar
+          </Button>
+        </DialogFooter>
+      </>
+    );
   }
 
   return (
@@ -212,33 +308,17 @@ function SaleForm({ onDone, onBack }: { onDone: () => void; onBack: () => void }
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label className="text-base">Quantidade</Label>
-            <Input
-              className="h-14 text-lg"
-              inputMode="numeric"
-              value={qty}
-              onChange={(e) => setQty(e.target.value)}
-            />
+            <Input className="h-14 text-lg" inputMode="numeric" value={qty} onChange={(e) => setQty(e.target.value)} />
           </div>
           <div>
             <Label className="text-base">Preço unit. (R$)</Label>
-            <Input
-              className="h-14 text-lg"
-              inputMode="decimal"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              placeholder="0,00"
-            />
+            <Input className="h-14 text-lg" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0,00" />
           </div>
         </div>
 
         <div>
           <Label className="text-base">Cliente (opcional)</Label>
-          <Input
-            className="h-14 text-lg"
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-            placeholder="Nome de quem comprou"
-          />
+          <Input className="h-14 text-lg" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Nome de quem comprou" />
         </div>
 
         <div className="rounded-2xl bg-muted/50 p-4 flex items-center justify-between">
@@ -250,8 +330,8 @@ function SaleForm({ onDone, onBack }: { onDone: () => void; onBack: () => void }
         <Button variant="ghost" size="lg" onClick={onBack} className="h-12">
           <X className="h-4 w-4" /> Voltar
         </Button>
-        <Button size="lg" onClick={submit} disabled={total <= 0} className="h-12 text-base">
-          Registrar venda
+        <Button size="lg" onClick={() => setStep("payment")} disabled={total <= 0} className="h-12 text-base">
+          Avançar
         </Button>
       </DialogFooter>
     </>
@@ -277,31 +357,18 @@ function ExpenseForm({ onDone, onBack }: { onDone: () => void; onBack: () => voi
       <div className="space-y-4 mt-2">
         <div>
           <Label className="text-base">O que foi?</Label>
-          <Input
-            className="h-14 text-lg"
-            value={desc}
-            onChange={(e) => setDesc(e.target.value)}
-            placeholder="Ex: Gás de cozinha"
-          />
+          <Input className="h-14 text-lg" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Ex: Gás de cozinha" />
         </div>
         <div>
           <Label className="text-base">Valor (R$)</Label>
-          <Input
-            className="h-14 text-lg"
-            inputMode="decimal"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="0,00"
-          />
+          <Input className="h-14 text-lg" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0,00" />
         </div>
       </div>
       <DialogFooter className="gap-2 sm:gap-2">
         <Button variant="ghost" size="lg" onClick={onBack} className="h-12">
           <X className="h-4 w-4" /> Voltar
         </Button>
-        <Button size="lg" onClick={submit} className="h-12 text-base">
-          Registrar gasto
-        </Button>
+        <Button size="lg" onClick={submit} className="h-12 text-base">Registrar gasto</Button>
       </DialogFooter>
     </>
   );
