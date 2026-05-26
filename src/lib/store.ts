@@ -29,6 +29,8 @@ export interface Flavor {
   /** Preço sugerido por empada */
   price: number;
   recipe: FlavorIngredient[];
+  /** Quantidade de empadas que a receita inteira rende (lote). */
+  recipeYield?: number;
   color?: string;
 }
 
