@@ -1,14 +1,13 @@
-import { useStore, formatBRL, actions, lowStockIngredients, formatQty, startOfToday, startOfWeek, isAfterOrEqual } from "@/lib/store";
+import { useStore, formatBRL, actions, lowStockIngredients, formatQty, startOfWeek, isAfterOrEqual } from "@/lib/store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, TrendingDown, Wallet, Trash2, AlertTriangle } from "lucide-react";
 
 export function Dashboard() {
   const s = useStore();
-  const today = startOfToday();
   const weekStart = startOfWeek();
   const revenue = s.finance
-    .filter((f) => f.type === "in" && isAfterOrEqual(f.date, today))
+    .filter((f) => f.type === "in" && isAfterOrEqual(f.date, weekStart))
     .reduce((a, b) => a + b.amount, 0);
   const cost = s.finance
     .filter((f) => f.type === "out" && isAfterOrEqual(f.date, weekStart))
@@ -25,11 +24,11 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard
-          label="Receita de hoje"
+          label="Receita da semana"
           value={formatBRL(revenue)}
           icon={<TrendingUp className="h-6 w-6" />}
           tone="success"
-          hint="reinicia todo dia"
+          hint="reinicia toda segunda"
         />
         <StatCard
           label="Custos da semana"
@@ -39,12 +38,12 @@ export function Dashboard() {
           hint="reinicia toda segunda"
         />
         <StatCard
-          label="Lucro de hoje"
+          label="Lucro da semana"
           value={formatBRL(profit)}
           icon={<Wallet className="h-6 w-6" />}
           tone={profit >= 0 ? "primary" : "destructive"}
           highlight
-          hint="receita do dia − custos da semana"
+          hint="receita − custos da semana"
         />
       </div>
 
