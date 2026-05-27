@@ -1,12 +1,18 @@
-import { useStore, formatBRL, actions, lowStockIngredients, formatQty } from "@/lib/store";
+import { useStore, formatBRL, actions, lowStockIngredients, formatQty, startOfToday, startOfWeek, isAfterOrEqual } from "@/lib/store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, TrendingDown, Wallet, Trash2, AlertTriangle } from "lucide-react";
 
 export function Dashboard() {
   const s = useStore();
-  const revenue = s.finance.filter((f) => f.type === "in").reduce((a, b) => a + b.amount, 0);
-  const cost = s.finance.filter((f) => f.type === "out").reduce((a, b) => a + b.amount, 0);
+  const today = startOfToday();
+  const weekStart = startOfWeek();
+  const revenue = s.finance
+    .filter((f) => f.type === "in" && isAfterOrEqual(f.date, today))
+    .reduce((a, b) => a + b.amount, 0);
+  const cost = s.finance
+    .filter((f) => f.type === "out" && isAfterOrEqual(f.date, weekStart))
+    .reduce((a, b) => a + b.amount, 0);
   const profit = revenue - cost;
   const lows = lowStockIngredients(s.ingredients);
 
@@ -19,23 +25,26 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard
-          label="Receita Total"
+          label="Receita de hoje"
           value={formatBRL(revenue)}
           icon={<TrendingUp className="h-6 w-6" />}
           tone="success"
+          hint="reinicia todo dia"
         />
         <StatCard
-          label="Custos Totais"
+          label="Custos da semana"
           value={formatBRL(cost)}
           icon={<TrendingDown className="h-6 w-6" />}
           tone="destructive"
+          hint="reinicia toda segunda"
         />
         <StatCard
-          label="Lucro Líquido"
+          label="Lucro de hoje"
           value={formatBRL(profit)}
           icon={<Wallet className="h-6 w-6" />}
           tone={profit >= 0 ? "primary" : "destructive"}
           highlight
+          hint="receita do dia − custos da semana"
         />
       </div>
 
@@ -101,9 +110,9 @@ export function Dashboard() {
   );
 }
 
-function StatCard({ label, value, icon, tone, highlight }: {
+function StatCard({ label, value, icon, tone, highlight, hint }: {
   label: string; value: string; icon: React.ReactNode;
-  tone: "success" | "destructive" | "primary"; highlight?: boolean;
+  tone: "success" | "destructive" | "primary"; highlight?: boolean; hint?: string;
 }) {
   const toneClasses = {
     success: "bg-success/10 text-success",
@@ -119,6 +128,7 @@ function StatCard({ label, value, icon, tone, highlight }: {
         </div>
       </div>
       <p className="text-3xl font-bold">{value}</p>
+      {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
     </Card>
   );
 }

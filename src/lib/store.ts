@@ -150,6 +150,22 @@ export const actions = {
     state.ingredients = state.ingredients.map((x) => (x.id === id ? { ...x, ...patch } : x));
     save();
   },
+  /** Nova compra do mesmo ingrediente: soma ao estoque, recalcula custo médio e lança no caixa. */
+  restockIngredient(id: string, addedQty: number, paidValue: number) {
+    const ing = state.ingredients.find((x) => x.id === id);
+    if (!ing || addedQty <= 0) return;
+    ing.purchasedQty = ing.purchasedQty + addedQty;
+    ing.paidValue = ing.paidValue + paidValue;
+    ing.currentQty = ing.currentQty + addedQty;
+    state.finance.push({
+      id: crypto.randomUUID(),
+      date: new Date().toISOString(),
+      type: "out",
+      description: `Compra: ${ing.name}`,
+      amount: paidValue,
+    });
+    save();
+  },
   removeIngredient(id: string) {
     state.ingredients = state.ingredients.filter((x) => x.id !== id);
     save();
@@ -345,3 +361,32 @@ export function inputUnitFor(unit: IngredientUnit): { label: string; toBase: (n:
   }
 }
 
+
+/** Início do dia atual (00:00 local). */
+export function startOfToday(): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/** Início da semana atual (segunda-feira 00:00 local). */
+export function startOfWeek(): Date {
+  const d = startOfToday();
+  const day = d.getDay(); // 0=dom .. 6=sáb
+  const diff = (day + 6) % 7; // dias desde segunda
+  d.setDate(d.getDate() - diff);
+  return d;
+}
+
+export function isSameDay(iso: string, ref: Date) {
+  const d = new Date(iso);
+  return (
+    d.getFullYear() === ref.getFullYear() &&
+    d.getMonth() === ref.getMonth() &&
+    d.getDate() === ref.getDate()
+  );
+}
+
+export function isAfterOrEqual(iso: string, ref: Date) {
+  return new Date(iso).getTime() >= ref.getTime();
+}
