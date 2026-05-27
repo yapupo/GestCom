@@ -97,6 +97,21 @@ function Index() {
                     description={s.description}
                   />
                 ))}
+                <div className="my-3 border-t border-border" />
+                <button
+                  onClick={() => { setMenuOpen(false); supabase.auth.signOut(); }}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl text-left transition-colors hover:bg-destructive/10 text-destructive"
+                >
+                  <div className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 bg-destructive/15 text-destructive">
+                    <LogOut className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold leading-tight">Sair</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {auth.session?.user?.email}
+                    </p>
+                  </div>
+                </button>
               </nav>
             </SheetContent>
           </Sheet>
