@@ -197,6 +197,71 @@ function AddItemDialog() {
   );
 }
 
+
+function RestockDialog({ ingredientId }: { ingredientId: string }) {
+  const s = useStore();
+  const ing = s.ingredients.find((i) => i.id === ingredientId);
+  const [open, setOpen] = useState(false);
+  const [qty, setQty] = useState("");
+  const [value, setValue] = useState("");
+  if (!ing) return null;
+
+  function submit() {
+    const q = parseFloat(qty.replace(",", "."));
+    const v = parseFloat(value.replace(",", "."));
+    if (isNaN(q) || isNaN(v) || q <= 0) return;
+    actions.restockIngredient(ingredientId, q, v);
+    setQty(""); setValue(""); setOpen(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="ghost" className="h-11 w-11" title="Nova compra">
+          <ShoppingCart className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle className="text-2xl">Nova compra</DialogTitle>
+          <p className="text-sm text-muted-foreground">{ing.name}</p>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label className="text-base">Quantidade comprada</Label>
+            <div className="flex items-center gap-2 mt-1">
+              <Input
+                className="h-12 text-lg"
+                inputMode="decimal"
+                value={qty}
+                onChange={(e) => setQty(e.target.value)}
+                placeholder="0"
+              />
+              <span className="text-muted-foreground font-medium">{ing.unit}</span>
+            </div>
+          </div>
+          <div>
+            <Label className="text-base">Valor pago (R$)</Label>
+            <Input
+              className="h-12 text-lg"
+              inputMode="decimal"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder="0,00"
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Será somado ao estoque e lançado automaticamente nos custos.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button size="lg" onClick={submit} className="h-12">Salvar compra</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 /* ------------------ Sabores ------------------ */
 
 function SaboresSection() {
