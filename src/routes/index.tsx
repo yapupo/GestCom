@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  Wallet, Package, Flame, NotebookPen, CalendarDays, HandCoins, Menu, ShoppingCart,
+  Wallet, Package, Flame, NotebookPen, CalendarDays, HandCoins, Menu, ShoppingCart, LogOut, Loader2,
 } from "lucide-react";
 import { Dashboard } from "@/components/Dashboard";
 import { Estoque } from "@/components/Estoque";
@@ -10,8 +10,11 @@ import { Notas } from "@/components/Notas";
 import { Calendario } from "@/components/Calendario";
 import { Fiado } from "@/components/Fiado";
 import { QuickActionFab } from "@/components/QuickActionFab";
+import { LoginScreen } from "@/components/LoginScreen";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 import betoneiraLogo from "@/assets/betoneira.png";
 
 export const Route = createFileRoute("/")({
@@ -34,9 +37,22 @@ const SECONDARY: { id: Tab; label: string; icon: typeof Wallet; description: str
 ];
 
 function Index() {
+  const auth = useAuth();
   const [tab, setTab] = useState<Tab>("dashboard");
   const [menuOpen, setMenuOpen] = useState(false);
   const [saleOpen, setSaleOpen] = useState(false);
+
+  if (auth.loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!auth.authorized) {
+    return <LoginScreen />;
+  }
 
   function go(t: Tab) {
     setTab(t);
@@ -81,6 +97,21 @@ function Index() {
                     description={s.description}
                   />
                 ))}
+                <div className="my-3 border-t border-border" />
+                <button
+                  onClick={() => { setMenuOpen(false); supabase.auth.signOut(); }}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl text-left transition-colors hover:bg-destructive/10 text-destructive"
+                >
+                  <div className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0 bg-destructive/15 text-destructive">
+                    <LogOut className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold leading-tight">Sair</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {auth.session?.user?.email}
+                    </p>
+                  </div>
+                </button>
               </nav>
             </SheetContent>
           </Sheet>
