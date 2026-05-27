@@ -25,23 +25,26 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard
-          label="Receita Total"
+          label="Receita de hoje"
           value={formatBRL(revenue)}
           icon={<TrendingUp className="h-6 w-6" />}
           tone="success"
+          hint="reinicia todo dia"
         />
         <StatCard
-          label="Custos Totais"
+          label="Custos da semana"
           value={formatBRL(cost)}
           icon={<TrendingDown className="h-6 w-6" />}
           tone="destructive"
+          hint="reinicia toda segunda"
         />
         <StatCard
-          label="Lucro Líquido"
+          label="Lucro de hoje"
           value={formatBRL(profit)}
           icon={<Wallet className="h-6 w-6" />}
           tone={profit >= 0 ? "primary" : "destructive"}
           highlight
+          hint="receita do dia − custos da semana"
         />
       </div>
 
