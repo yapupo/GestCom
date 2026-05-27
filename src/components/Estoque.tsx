@@ -89,9 +89,12 @@ function ItensSection() {
                       Comprado: {formatQty(i.purchasedQty, i.unit)} · {formatBRL(i.paidValue)}
                     </p>
                   </div>
-                  <Button size="icon" variant="ghost" className="h-11 w-11" onClick={() => actions.removeIngredient(i.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <RestockDialog ingredientId={i.id} />
+                    <Button size="icon" variant="ghost" className="h-11 w-11" onClick={() => actions.removeIngredient(i.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-3">
                   <div>
