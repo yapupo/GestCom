@@ -110,9 +110,9 @@ export function Dashboard() {
   );
 }
 
-function StatCard({ label, value, icon, tone, highlight }: {
+function StatCard({ label, value, icon, tone, highlight, hint }: {
   label: string; value: string; icon: React.ReactNode;
-  tone: "success" | "destructive" | "primary"; highlight?: boolean;
+  tone: "success" | "destructive" | "primary"; highlight?: boolean; hint?: string;
 }) {
   const toneClasses = {
     success: "bg-success/10 text-success",
@@ -128,6 +128,7 @@ function StatCard({ label, value, icon, tone, highlight }: {
         </div>
       </div>
       <p className="text-3xl font-bold">{value}</p>
+      {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
     </Card>
   );
 }
