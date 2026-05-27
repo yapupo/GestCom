@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  Wallet, Package, Flame, NotebookPen, CalendarDays, HandCoins, Menu, ShoppingCart,
+  Wallet, Package, Flame, NotebookPen, CalendarDays, HandCoins, Menu, ShoppingCart, LogOut, Loader2,
 } from "lucide-react";
 import { Dashboard } from "@/components/Dashboard";
 import { Estoque } from "@/components/Estoque";
@@ -10,8 +10,11 @@ import { Notas } from "@/components/Notas";
 import { Calendario } from "@/components/Calendario";
 import { Fiado } from "@/components/Fiado";
 import { QuickActionFab } from "@/components/QuickActionFab";
+import { LoginScreen } from "@/components/LoginScreen";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 import betoneiraLogo from "@/assets/betoneira.png";
 
 export const Route = createFileRoute("/")({
