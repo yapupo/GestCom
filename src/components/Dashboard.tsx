@@ -1,12 +1,18 @@
-import { useStore, formatBRL, actions, lowStockIngredients, formatQty } from "@/lib/store";
+import { useStore, formatBRL, actions, lowStockIngredients, formatQty, startOfToday, startOfWeek, isAfterOrEqual } from "@/lib/store";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, TrendingDown, Wallet, Trash2, AlertTriangle } from "lucide-react";
 
 export function Dashboard() {
   const s = useStore();
-  const revenue = s.finance.filter((f) => f.type === "in").reduce((a, b) => a + b.amount, 0);
-  const cost = s.finance.filter((f) => f.type === "out").reduce((a, b) => a + b.amount, 0);
+  const today = startOfToday();
+  const weekStart = startOfWeek();
+  const revenue = s.finance
+    .filter((f) => f.type === "in" && isAfterOrEqual(f.date, today))
+    .reduce((a, b) => a + b.amount, 0);
+  const cost = s.finance
+    .filter((f) => f.type === "out" && isAfterOrEqual(f.date, weekStart))
+    .reduce((a, b) => a + b.amount, 0);
   const profit = revenue - cost;
   const lows = lowStockIngredients(s.ingredients);
 
