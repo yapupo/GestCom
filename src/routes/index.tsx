@@ -37,9 +37,22 @@ const SECONDARY: { id: Tab; label: string; icon: typeof Wallet; description: str
 ];
 
 function Index() {
+  const auth = useAuth();
   const [tab, setTab] = useState<Tab>("dashboard");
   const [menuOpen, setMenuOpen] = useState(false);
   const [saleOpen, setSaleOpen] = useState(false);
+
+  if (auth.loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!auth.authorized) {
+    return <LoginScreen />;
+  }
 
   function go(t: Tab) {
     setTab(t);
