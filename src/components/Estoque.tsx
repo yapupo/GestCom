@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Package, Plus, Trash2, AlertTriangle, Cookie, Pencil } from "lucide-react";
+import { Package, Plus, Trash2, AlertTriangle, Cookie, Pencil, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
